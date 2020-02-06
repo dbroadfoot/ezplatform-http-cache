@@ -16,9 +16,9 @@ use Symfony\Component\HttpFoundation\Response;
  * php app/console fos:httpcache:invalidate:tag <tag>.
  *
  * It implements tagResponse() to make sure TagSubscriber (a FOS event listener) sends tags using the header
- * we have configured, and to be able to prefix tags with respository id in order to support multi repo setups.
+ * we have configured, and to be able to prefix tags with repository id in order to support multi repo setups.
  */
-class TagHandler extends SymfonyResponseTagger
+class TagHandler extends SymfonyResponseTagger implements ContentTagInterface
 {
     /** @var \EzSystems\PlatformHttpCacheBundle\RepositoryTagPrefix */
     private $prefixService;
@@ -50,13 +50,14 @@ class TagHandler extends SymfonyResponseTagger
 
             // Prefix tags with repository prefix (to be able to support several repositories on one proxy)
             $repoPrefix = $this->prefixService->getRepositoryPrefix();
-            if (!empty($repoPrefix)) {
+            if ($repoPrefix !== '') {
                 $tags = array_map(
                     static function ($tag) use ($repoPrefix) {
                         return $repoPrefix . $tag;
                     },
                     $tags
                 );
+
                 // Also add a un-prefixed `ez-all` in order to be able to purge all across repos
                 $tags[] = 'ez-all';
             }
@@ -70,5 +71,75 @@ class TagHandler extends SymfonyResponseTagger
         }
 
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addContentTags(array $contentIds)
+    {
+        $this->addTags(array_map(static function ($contentId) {
+            return ContentTagInterface::CONTENT_PREFIX . $contentId;
+        }, $contentIds));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addLocationTags(array $locationIds)
+    {
+        $this->addTags(array_map(static function ($locationId) {
+            return ContentTagInterface::LOCATION_PREFIX . $locationId;
+        }, $locationIds));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addParentLocationTags(array $parentLocationIds)
+    {
+        $this->addTags(array_map(static function ($parentLocationId) {
+            return ContentTagInterface::PARENT_LOCATION_PREFIX . $parentLocationId;
+        }, $parentLocationIds));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addPathTags(array $locationIds)
+    {
+        $this->addTags(array_map(static function ($locationId) {
+            return ContentTagInterface::PATH_PREFIX . $locationId;
+        }, $locationIds));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addRelationTags(array $contentIds)
+    {
+        $this->addTags(array_map(static function ($contentId) {
+            return ContentTagInterface::RELATION_PREFIX . $contentId;
+        }, $contentIds));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addRelationLocationTags(array $locationIds)
+    {
+        $this->addTags(array_map(static function ($locationId) {
+            return ContentTagInterface::RELATION_LOCATION_PREFIX . $locationId;
+        }, $locationIds));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addContentTypeTags(array $contentTypeIds)
+    {
+        $this->addTags(array_map(static function ($contentTypeId) {
+            return ContentTagInterface::CONTENT_TYPE_PREFIX . $contentTypeId;
+        }, $contentTypeIds));
     }
 }
